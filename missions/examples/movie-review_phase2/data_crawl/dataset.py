@@ -24,7 +24,7 @@ import os
 import re
 
 import numpy as np
-# from torch.utils.data import Dataset
+import pandas as pd
 
 from kor_char_parser import decompose_str_as_one_hot
 
@@ -44,10 +44,16 @@ class MovieReviewDataset():
 
         # 영화리뷰 데이터를 읽고 preprocess까지 진행합니다
         with open(data_review, 'rt', encoding='utf-8') as f:
-            self.reviews = preprocess(f.readlines(), max_length)
+            self.reviews = f.readlines()
         # 영화리뷰 레이블을 읽고 preprocess까지 진행합니다.
         with open(data_label) as f:
             self.labels = [np.float32(x) for x in f.readlines()]
+
+        tr_data = pd.DataFrame(self.reviews, columns=['review']) 
+        tr_label = pd.DataFrame(self.labels, columns=['label']) 
+
+        tr_data.to_csv("train_data.csv", index=False)
+        tr_label.to_csv("train_label.csv", index=False)
 
     def __len__(self):
         """

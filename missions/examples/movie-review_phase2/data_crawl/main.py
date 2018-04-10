@@ -87,27 +87,27 @@ if __name__ == '__main__':
         emb = Embedding(config.max_features, config.embed_size, trainable = True)(inp)
         x1 = SpatialDropout1D(config.prob_dropout)(emb)
         x1 = Bidirectional(CuDNNLSTM(config.cell_size, return_sequences=True))(x1)
-        x12 = Bidirectional(CuDNNGRU(config.cell_size, return_sequences=False))(x1)
+        # x12 = Bidirectional(CuDNNGRU(config.cell_size, return_sequences=False))(x1)
         
-        x2 = SpatialDropout1D(config.prob_dropout)(emb)
-        x2 = Bidirectional(CuDNNGRU(config.cell_size2, return_sequences=True))(x2)
-        x22 = Bidirectional(CuDNNLSTM(config.cell_size2, return_sequences=False))(x1)
+        # x2 = SpatialDropout1D(config.prob_dropout)(emb)
+        # x2 = Bidirectional(CuDNNGRU(config.cell_size2, return_sequences=True))(x2)
+        # x22 = Bidirectional(CuDNNLSTM(config.cell_size2, return_sequences=False))(x1)
         
         avg_pool1 = GlobalAveragePooling1D()(x1)
-        max_pool1 = GlobalMaxPooling1D()(x1)
+        # max_pool1 = GlobalMaxPooling1D()(x1)
         
 #         avg_pool12 = GlobalAveragePooling1D()(x12)
 #         max_pool12 = GlobalMaxPooling1D()(x12)
         
-        avg_pool3 = GlobalAveragePooling1D()(x2)
-        max_pool3 = GlobalMaxPooling1D()(x2)
+        # avg_pool3 = GlobalAveragePooling1D()(x2)
+        # max_pool3 = GlobalMaxPooling1D()(x2)
         
 #         avg_pool14 = GlobalAveragePooling1D()(x22)
 #         max_pool14 = GlobalMaxPooling1D()(x22)
         
-        conc = concatenate([avg_pool1, max_pool1, x12, avg_pool3, max_pool3, x22])
+        # conc = concatenate([avg_pool1, max_pool1, x12, avg_pool3, max_pool3, x22])
 #         fc1 = Dense(50, activation='relu')(conc)
-        fc1 = Dropout(config.prob_dropout)(conc)
+        fc1 = Dropout(config.prob_dropout)(avg_pool1)
         outp = Dense(1)(fc1)
         
         model = Model(inputs=inp, outputs=outp)
