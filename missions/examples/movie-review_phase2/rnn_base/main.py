@@ -18,7 +18,7 @@ from keras.engine import Layer
 from keras.callbacks import Callback
 
 import nsml
-from dataset import MovieReviewDataset, preprocess
+from dataset import MovieReviewDataset, preprocess, MovieReviewDataset_val
 from nsml import DATASET_PATH, HAS_DATASET, GPU_NUM, IS_ON_NSML
 
 
@@ -124,7 +124,7 @@ if __name__ == '__main__':
         # epoch마다 학습을 수행합니다.
         nsml_callback = Nsml_Callback()
         if config.local == 'local':
-            dataset_val = MovieReviewDataset_val()
+            dataset_val = MovieReviewDataset_val(DATASET_PATH, config.strmaxlen)
             x_val = np.array(dataset_val.reviews)
             y_val = np.array(dataset_val.labels)
             print("model training...")
