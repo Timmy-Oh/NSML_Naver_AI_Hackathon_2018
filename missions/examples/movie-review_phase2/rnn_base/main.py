@@ -128,8 +128,10 @@ if __name__ == '__main__':
             x_val = np.array(dataset_val.reviews)
             y_val = np.array(dataset_val.labels)
             print("model training...")
-            hist = model.fit(x, y, validation_data=(x_val, y_val),
-                                 batch_size=config.batch_size, callbacks=[nsml_callback], epochs=config.epochs, verbose=2)
+            hist = model.fit(x, y, 
+#                              validation_data=(x_val, y_val),
+                             validation_split = 0.15,
+                             batch_size=config.batch_size, callbacks=[nsml_callback], epochs=config.epochs, verbose=2)
 
         else:
             print("model training...")
