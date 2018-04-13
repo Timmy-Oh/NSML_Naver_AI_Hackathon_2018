@@ -166,20 +166,20 @@ if __name__ == '__main__':
 # #         ==================================================================================================
         model_avg = Model(inputs=inp, outputs=out_avg)
         
-        inp_pre = Input(shape=(config.strmaxlen, ), name='input_pre')
-        inp_post = Input(shape=(config.strmaxlen, ), name='input_post')
+#         inp_pre = Input(shape=(config.strmaxlen, ), name='input_pre')
+#         inp_post = Input(shape=(config.strmaxlen, ), name='input_post')
         
-        model_pre = model_avg(inp_pre)
-        model_post = model_avg(inp_post)
+#         model_pre = model_avg(inp_pre)
+#         model_post = model_avg(inp_post)
         
-        stack_layer = concatenate([model_pre, model_post])
-        ens_out = Dense(1, use_bias=False)(stack_layer)
+#         stack_layer = concatenate([model_pre, model_post])
+#         ens_out = Dense(1, use_bias=False)(stack_layer)
         
-        reg_model = Model(inputs=[inp_pre, inp_post], outputs=ens_out)
+#         reg_model = Model(inputs=[inp_pre, inp_post], outputs=ens_out)
         
-        reg_model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error', 'accuracy'])
+        model_avg.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error', 'accuracy'])
         
-        return reg_model
+        return model_avg
     
     print("model creating...")
     model = get_model(config)
@@ -209,7 +209,7 @@ if __name__ == '__main__':
 #         x_val = np.array(dataset_val.reviews)
 #         y_val = np.array(dataset_val.labels)
         print("model training...")
-        hist = model.fit([x_pre, x_post], y, 
+        hist = model.fit(x_pre, y, 
                          validation_split = 0.1,
                          batch_size=config.batch_size, callbacks=[nsml_callback], epochs=config.epochs, verbose=2)
 
