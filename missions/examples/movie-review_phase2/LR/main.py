@@ -3,44 +3,56 @@ import argparse
 import os
 import numpy as np
 
-# from sklearn.model_selection import KFold
-# keras
-from keras.models import Model
-from keras.layers import Dense, Embedding, Input, concatenate, Flatten, add, multiply, average
-from keras.layers import CuDNNLSTM, CuDNNGRU, Bidirectional, Conv1D, Dropout
-from keras.layers import Dropout, SpatialDropout1D, BatchNormalization, GlobalAveragePooling1D, GlobalMaxPooling1D, PReLU
-from keras.optimizers import Adam, RMSprop
-from keras.layers import MaxPooling1D
-from keras.layers import K, Activation
-from keras.engine import Layer
-
-##DPCNN
-from keras.models import Model
-from keras.layers import Input, Dense, Embedding, MaxPooling1D, Conv1D, SpatialDropout1D
-from keras.layers import add, Dropout, PReLU, BatchNormalization, GlobalMaxPooling1D
-from keras.preprocessing import text, sequence
-from keras.callbacks import Callback
-from keras import optimizers
-from keras import initializers, regularizers, constraints, callbacks
-
-from keras.callbacks import Callback
-from keras.callbacks import Callback, LearningRateScheduler, ModelCheckpoint
-
 import nsml
-from dataset import MovieReviewDataset, preprocess_pre, preprocess_post
 from nsml import DATASET_PATH, HAS_DATASET, GPU_NUM, IS_ON_NSML
 
+### LGBM
+import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import mean_squared_error
+import gc
+import lightgbm as lgb
+
+
+### Custom
+from dataset import MovieReviewDataset, word_preprocessor, char_preprocessor
+from dataset import regexp, vect_fit, vect_transform, trn_val_seperation
+##################################################################################   
+##################################################################################   
+##################################################################################   
+
+
+##################################################################################   
+##################################################################################   
+##################################################################################   
 
 # DONOTCHANGE: They are reserved for nsml
 # This is for nsml leaderboard
-def bind_model(model, config):
+def bind_model(models, config):
     # 학습한 모델을 저장하는 함수입니다.
     def save(filename, *args):
-        model.save_weights(filename)
+#         model.save_weights(filename)
+        # save model to file
+        models[1].save_model('lgbm_model.txt')
+        
+        # dump model with pickle
+        with open('lgbm.pkl', 'wb') as fout:
+            pickle.dump(models[1], fout)
+    
+
+# # can predict with any iteration when loaded in pickle way
+# y_pred = pkl_bst.predict(X_test, num_iteration=7)
 
     # 저장한 모델을 불러올 수 있는 함수입니다.
     def load(filename, *args):
-        model.load_weights(filename)
+#         model.load_weights(filename)
+
+        # load model with pickle to predict
+        print('Model loading...')
+        with open('model.pkl', 'rb') as fin:
+            models[1] = pickle.load(fin)
         print('Model loaded')
 
     def infer(raw_data, **kwargs):
@@ -50,9 +62,9 @@ def bind_model(model, config):
         :return:
         """
         # dataset.py에서 작성한 preprocess 함수를 호출하여, 문자열을 벡터로 변환합니다
-        preprocessed_data = preprocess_pre(raw_data, config.strmaxlen)
+        preprocessed_data = vect_transform(raw_data, vect_word, vect_char)
         # 저장한 모델에 입력값을 넣고 prediction 결과를 리턴받습니다
-        point = model.predict(preprocessed_data)[3]
+        point = model.predict(preprocessed_data)
         point[point>10.] = 10.
         point[point<1.] = 1.
 
@@ -65,10 +77,10 @@ def bind_model(model, config):
     # nsml에서 지정한 함수에 접근할 수 있도록 하는 함수입니다.
     nsml.bind(save=save, load=load, infer=infer)
 
-class Nsml_Callback(Callback):
-    def on_epoch_end(self, epoch, logs={}):
-        nsml.report(summary=True, scope=locals(), epoch=epoch, epoch_total=config.epochs, step=epoch)
-        nsml.save(epoch)
+# class Nsml_Callback(Callback):
+#     def on_epoch_end(self, epoch, logs={}):
+#         nsml.report(summary=True, scope=locals(), epoch=epoch, epoch_total=config.epochs, step=epoch)
+#         nsml.save(epoch)
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser()
@@ -95,100 +107,19 @@ if __name__ == '__main__':
     config = args.parse_args()
 
     if not HAS_DATASET and not IS_ON_NSML:  # It is not running on nsml
-        DATASET_PATH = '../data/movie_review/'
-        
-    def get_model(config):
-
-       
-
-        inp = Input(shape=(config.strmaxlen, ), name='input')
-        
-        emb1 = Embedding(config.max_features, config.embed_size, trainable = True)(inp)
-        emb2 = Embedding(config.max_features, config.embed_size, trainable = True)(inp)
-        
-        emb1 = SpatialDropout1D(config.prob_dropout)(emb1)
-        emb2 = SpatialDropout1D(config.prob_dropout)(emb2)
-        
-        l1_L = Bidirectional(CuDNNLSTM(config.cell_size_l1, return_sequences=True))(emb1)
-        l1_G = Bidirectional(CuDNNGRU(config.cell_size_l1, return_sequences=True))(emb2)
-        
-        l2_LL = Bidirectional(CuDNNLSTM(config.cell_size_l2, return_sequences=True))(l1_L)
-        l2_LG = Bidirectional(CuDNNGRU(config.cell_size_l2, return_sequences=True))(l1_L)
-        
-        l2_GL = Bidirectional(CuDNNLSTM(config.cell_size_l2, return_sequences=True))(l1_G)
-        l2_GG = Bidirectional(CuDNNGRU(config.cell_size_l2, return_sequences=True))(l1_G)
-        
-        l3_LLC = Conv1D(config.filter_size, kernel_size = config.kernel_size, strides=1, padding = "valid", kernel_initializer = "he_uniform")(l2_LL)
-        l3_LGC = Conv1D(config.filter_size, kernel_size = config.kernel_size, strides=1, padding = "valid", kernel_initializer = "he_uniform")(l2_LG)
-        l3_GLC = Conv1D(config.filter_size, kernel_size = config.kernel_size, strides=1, padding = "valid", kernel_initializer = "he_uniform")(l2_GL)
-        l3_GGC = Conv1D(config.filter_size, kernel_size = config.kernel_size, strides=1, padding = "valid", kernel_initializer = "he_uniform")(l2_GG)
-
-        avg_pool_L = GlobalAveragePooling1D()(l1_L)
-        max_pool_L = GlobalMaxPooling1D()(l1_L)
-        
-        avg_pool_G = GlobalAveragePooling1D()(l1_G)
-        max_pool_G = GlobalMaxPooling1D()(l1_G)
-        
-        avg_pool_LL = GlobalAveragePooling1D()(l2_LL)
-        max_pool_LL = GlobalMaxPooling1D()(l2_LL)
-        avg_pool_LG = GlobalAveragePooling1D()(l2_LG)
-        max_pool_LG = GlobalMaxPooling1D()(l2_LG)
-        avg_pool_GL = GlobalAveragePooling1D()(l2_GL)
-        max_pool_GL = GlobalMaxPooling1D()(l2_GL)
-        avg_pool_GG = GlobalAveragePooling1D()(l2_GG)
-        max_pool_GG = GlobalMaxPooling1D()(l2_GG)
-        
-        avg_pool_LLC = GlobalAveragePooling1D()(l3_LLC)
-        max_pool_LLC = GlobalMaxPooling1D()(l3_LLC)
-        avg_pool_LGC = GlobalAveragePooling1D()(l3_LGC)
-        max_pool_LGC = GlobalMaxPooling1D()(l3_LGC)
-        avg_pool_GLC = GlobalAveragePooling1D()(l3_GLC)
-        max_pool_GLC = GlobalMaxPooling1D()(l3_GLC)
-        avg_pool_GGC = GlobalAveragePooling1D()(l3_GGC)
-        max_pool_GGC = GlobalMaxPooling1D()(l3_GGC)
-        
-        conc_LLC = concatenate([avg_pool_L, max_pool_L, avg_pool_LL, max_pool_LL, avg_pool_LLC, max_pool_LLC])
-        conc_LGC = concatenate([avg_pool_L, max_pool_L, avg_pool_LG, max_pool_LG, avg_pool_LGC, max_pool_LGC])
-        conc_GLC = concatenate([avg_pool_G, max_pool_G, avg_pool_GL, max_pool_GL, avg_pool_GLC, max_pool_GLC])
-        conc_GGC = concatenate([avg_pool_G, max_pool_G, avg_pool_GG, max_pool_GG, avg_pool_GGC, max_pool_GGC])        
-
-        out_LLC = Dropout(config.prob_dropout)(conc_LLC)
-        out_LLC = Dense(1)(out_LLC)
-        out_LGC = Dropout(config.prob_dropout)(conc_LGC)
-        out_LGC = Dense(1)(out_LGC)
-        out_GLC = Dropout(config.prob_dropout)(conc_GLC)
-        out_GLC = Dense(1)(out_GLC)
-        out_GGC = Dropout(config.prob_dropout)(conc_GGC)
-        out_GGC = Dense(1)(out_GGC)
-        
-        out_avg = average([out_LLC, out_LGC, out_GLC, out_GGC])
-
-        
-# #         ==================================================================================================
-        model_avg = Model(inputs=inp, outputs=[out_LLC, out_LGC, out_GLC, out_GGC, out_avg])
-        
-#         inp_pre = Input(shape=(config.strmaxlen, ), name='input_pre')
-#         inp_post = Input(shape=(config.strmaxlen, ), name='input_post')
-        
-#         model_pre = model_avg(inp_pre)
-#         model_post = model_avg(inp_post)
-        
-#         stack_layer = concatenate([model_pre, model_post])
-#         ens_out = Dense(1, use_bias=False)(stack_layer)
-        
-#         reg_model = Model(inputs=[inp_pre, inp_post], outputs=ens_out)
-        
-        model_avg.compile(loss='mean_squared_error', optimizer='adam', loss_weights=[1., 1., 1., 1., 0.25] ,metrics=['mean_squared_error', 'accuracy'])
-        
-        return model_avg
+        DATASET_PATH = '../sample_data/movie_review/'
     
     print("model creating...")
-    model = get_model(config)
-    model.summary()
+    vect_word = TfidfVectorizer(ngram_range=(1,2), max_features=100000, preprocessor=word_preprocessor)
+    vect_char = TfidfVectorizer(ngram_range=(2,4), max_features=100000, analyzer='char', preprocessor=char_preprocessor)
     
+    model = object
+    lgb_model = object
+    
+    models = (model, lgb_model, vect_word, vect_char)
     # DONOTCHANGE: Reserved for nsml use
     print("nsml binding...")
-    bind_model(model, config)
+    bind_model(models, config)
 
     # DONOTCHANGE: They are reserved for nsml
     if config.pause:
@@ -198,21 +129,46 @@ if __name__ == '__main__':
     if config.mode == 'train':
         # 데이터를 로드합니다.
         print("data loading...")
-        dataset = MovieReviewDataset(DATASET_PATH, config.strmaxlen)
+        dataset = MovieReviewDataset(DATASET_PATH)
+#         X_trn, X_val, Y_trn, Y_val= trn_val_seperation(dataset, 144570)
+        X_trn, X_val, Y_trn, Y_val= trn_val_seperation(dataset, 3)
         
-        x_pre = np.array(dataset.reviews_pre)
-        x_post = np.array(dataset.reviews_post)
-        y = np.array(dataset.labels)
+        # Vectorizer를 학습합니다
+        vect_word, vect_char = vect_fit(X_trn, vect_word, vect_char)
         
-        # epoch마다 학습을 수행합니다.
-        nsml_callback = Nsml_Callback()
+        # Text를 Vector화 합니다
+        X_trn = vect_transform(X_trn, vect_word, vect_char)
+        X_val = vect_transform(X_val, vect_word, vect_char)
+        
+        #Dataset 구성
+        train_data = lgb.Dataset(X_trn, Y_trn)
+        valid_data = lgb.Dataset(X_val, Y_val, reference=train_data)
+        gc.collect()
+        
+        # params 세탕 합니다
+        params = {
+            'boosting_type': 'gbdt',
+            'objective': 'regression',
+            'metric': {'l2'},
+            'num_leaves': 7,
+            'max_depth': 15,
+            'learning_rate': 1.0,
+            'feature_fraction': 0.9,
+            'bagging_fraction': 0.8,
+            'bagging_freq': 5,
+            'verbose': 1,
+        }
+        # 학습을 수행합니다.
 #         dataset_val = MovieReviewDataset_val(DATASET_PATH, config.strmaxlen)
 #         x_val = np.array(dataset_val.reviews)
 #         y_val = np.array(dataset_val.labels)
         print("model training...")
-        hist = model.fit(x_pre, [y,y,y,y,y], 
-                         validation_split = 0.1,
-                         batch_size=config.batch_size, callbacks=[nsml_callback], epochs=config.epochs, verbose=2)
+        num_round= 50
+        model = lgb.train(params, train_data, num_round, valid_sets=[valid_data])
+        epoch = 0
+        nsml.save(epoch)
+
+    ###
 
 
     # 로컬 테스트 모드일때 사용합니다
