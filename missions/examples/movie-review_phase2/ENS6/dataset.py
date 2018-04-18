@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 Copyright 2018 NAVER Corp.
 
@@ -19,14 +18,11 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTIO
 CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
-
 import os
 import re
-
 import numpy as np
 
 from kor_char_parser import decompose_str_as_one_hot
-
 class MovieReviewDataset():
     """
     영화리뷰 데이터를 읽어서, tuple (데이터, 레이블)의 형태로 리턴하는 파이썬 오브젝트 입니다.
@@ -49,7 +45,6 @@ class MovieReviewDataset():
         # 영화리뷰 레이블을 읽고 preprocess까지 진행합니다.
         with open(data_label) as f:
             self.labels = [np.float32(x) for x in f.readlines()]
-
 
 def preprocess_pre(data: list, max_length: int):
     """
@@ -81,7 +76,6 @@ def preprocess_pre(data: list, max_length: int):
         else:
             zero_padding[idx, (max_length-length):] = np.array(seq)
     return zero_padding
-
 
 def preprocess_post(data: list, max_length: int):
     """
