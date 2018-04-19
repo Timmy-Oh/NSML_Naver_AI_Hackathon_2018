@@ -70,6 +70,80 @@ class Nsml_Callback(Callback):
         nsml.report(summary=True, scope=locals(), epoch=epoch, epoch_total=config.epochs, step=epoch)
         nsml.save(epoch)
 
+from keras import backend as K
+from keras.engine.topology import Layer
+from keras import initializers, regularizers, constraints
+
+
+class Attention(Layer):
+    def __init__(self, step_dim,
+                 W_regularizer=None, b_regularizer=None,
+                 W_constraint=None, b_constraint=None,
+                 bias=True, **kwargs):
+        self.supports_masking = True
+        self.init = initializers.get('glorot_uniform')
+
+        self.W_regularizer = regularizers.get(W_regularizer)
+        self.b_regularizer = regularizers.get(b_regularizer)
+
+        self.W_constraint = constraints.get(W_constraint)
+        self.b_constraint = constraints.get(b_constraint)
+
+        self.bias = bias
+        self.step_dim = step_dim
+        self.features_dim = 0
+        super(Attention, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        assert len(input_shape) == 3
+
+        self.W = self.add_weight((input_shape[-1],),
+                                 initializer=self.init,
+                                 name='{}_W'.format(self.name),
+                                 regularizer=self.W_regularizer,
+                                 constraint=self.W_constraint)
+        self.features_dim = input_shape[-1]
+
+        if self.bias:
+            self.b = self.add_weight((input_shape[1],),
+                                     initializer='zero',
+                                     name='{}_b'.format(self.name),
+                                     regularizer=self.b_regularizer,
+                                     constraint=self.b_constraint)
+        else:
+            self.b = None
+
+        self.built = True
+
+    def compute_mask(self, input, input_mask=None):
+        return None
+
+    def call(self, x, mask=None):
+        features_dim = self.features_dim
+        step_dim = self.step_dim
+
+        eij = K.reshape(K.dot(K.reshape(x, (-1, features_dim)),
+                        K.reshape(self.W, (features_dim, 1))), (-1, step_dim))
+
+        if self.bias:
+            eij += self.b
+
+        eij = K.tanh(eij)
+
+        a = K.exp(eij)
+
+        if mask is not None:
+            a *= K.cast(mask, K.floatx())
+
+        a /= K.cast(K.sum(a, axis=1, keepdims=True) + K.epsilon(), K.floatx())
+
+        a = K.expand_dims(a)
+        weighted_input = x * a
+        return K.sum(weighted_input, axis=1)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape[0],  self.features_dim
+    
 if __name__ == '__main__':
     args = argparse.ArgumentParser()
     # DONOTCHANGE: They are reserved for nsml
@@ -80,15 +154,15 @@ if __name__ == '__main__':
     # User options
     args.add_argument('--output', type=int, default=1)
     args.add_argument('--epochs', type=int, default=100)
-    args.add_argument('--strmaxlen', type=int, default=250)
+    args.add_argument('--strmaxlen', type=int, default=200)
     
 #   # args.add_argument('--maxlen', type=int, default=200)
-    args.add_argument('--cell_size_l1', type=int, default=50)
-    args.add_argument('--cell_size_l2', type=int, default=30)
+    args.add_argument('--cell_size_l1', type=int, default=40)
+    args.add_argument('--cell_size_l2', type=int, default=40)
     args.add_argument('--filter_size', type=int, default=32)
     args.add_argument('--kernel_size', type=int, default=2)
     args.add_argument('--embed_size', type=int, default=256)
-    args.add_argument('--prob_dropout', type=float, default=0.2)
+    args.add_argument('--prob_dropout', type=float, default=0.4)
     args.add_argument('--max_features', type=int, default=251)
     args.add_argument('--batch_size', type=int, default=256)
     
@@ -104,32 +178,34 @@ if __name__ == '__main__':
         emb1 = SpatialDropout1D(config.prob_dropout)(emb1)
         
         #### 
-        l1_L = Bidirectional(CuDNNLSTM(config.cell_size_l1, return_sequences=True))(emb1)
+        l1_G = Bidirectional(CuDNNGRU(config.cell_size_l1, return_sequences=True))(emb1)
         
-        l2_LL = Bidirectional(CuDNNLSTM(config.cell_size_l2, return_sequences=True))(l1_L)
-        l2_LG = Bidirectional(CuDNNGRU(config.cell_size_l2, return_sequences=True))(l1_L)
+        l2_LL = Bidirectional(CuDNNLSTM(config.cell_size_l2, return_sequences=True))(l1_G)
+        l2_LG = Bidirectional(CuDNNGRU(config.cell_size_l2, return_sequences=True))(l1_G)
 
 #         avg_pool_L = GlobalAveragePooling1D()(l1_L)
 #         max_pool_L = GlobalMaxPooling1D()(l1_L)
-        
-        avg_pool_LL = GlobalAveragePooling1D()(l2_LL)
-        max_pool_LL = GlobalMaxPooling1D()(l2_LL)
-        avg_pool_LG = GlobalAveragePooling1D()(l2_LG)
-        max_pool_LG = GlobalMaxPooling1D()(l2_LG)
+
+        attention_LL = Attention(config.strmaxlen)(l2_LL)
+        attention_LG = Attention(config.strmaxlen)(l2_LG)    
+#         avg_pool_LL = GlobalAveragePooling1D()(l2_LL)
+#         max_pool_LL = GlobalMaxPooling1D()(l2_LL)
+#         avg_pool_LG = GlobalAveragePooling1D()(l2_LG)
+#         max_pool_LG = GlobalMaxPooling1D()(l2_LG)
 
 #         avg_pool_LLC = GlobalAveragePooling1D()(l3_LLC)
 #         max_pool_LLC = GlobalMaxPooling1D()(l3_LLC)
 #         avg_pool_LGC = GlobalAveragePooling1D()(l3_LGC)
 #         max_pool_LGC = GlobalMaxPooling1D()(l3_LGC)
         
-        conc_LL = concatenate([avg_pool_LL, max_pool_LL])
-        conc_LG = concatenate([avg_pool_LG, max_pool_LG])
+#         conc_LL = concatenate([avg_pool_LL, max_pool_LL])
+#         conc_LG = concatenate([avg_pool_LG, max_pool_LG])
 #         conc_GLC = concatenate([avg_pool_G, max_pool_G, avg_pool_GL, max_pool_GL, avg_pool_GLC, max_pool_GLC])
 #         conc_GGC = concatenate([avg_pool_G, max_pool_G, avg_pool_GG, max_pool_GG, avg_pool_GGC, max_pool_GGC])        
 
-        out_LL = Dropout(config.prob_dropout)(conc_LL)
+        out_LL = Dropout(config.prob_dropout)(attention_LL)
         out_LL = Dense(1)(out_LL)
-        out_LG = Dropout(config.prob_dropout)(conc_LG)
+        out_LG = Dropout(config.prob_dropout)(attention_LG)
         out_LG = Dense(1)(out_LG)
 
         
@@ -152,7 +228,7 @@ if __name__ == '__main__':
         
 #         reg_model = Model(inputs=[inp_pre, inp_post], outputs=ens_out)
         
-        model_avg.compile(loss='mean_squared_error', optimizer='adam', loss_weights=[1., 1., 0.2] ,metrics=['mean_squared_error', 'accuracy'])
+        model_avg.compile(loss='mean_squared_error', optimizer='adam', loss_weights=[1., 1., 4.] ,metrics=['mean_squared_error', 'accuracy'])
         
         return model_avg
     
