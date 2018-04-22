@@ -29,7 +29,10 @@ from keras.callbacks import Callback, LearningRateScheduler, ModelCheckpoint
 import nsml
 from dataset import MovieReviewDataset, preprocess_pre, preprocess_post
 from nsml import DATASET_PATH, HAS_DATASET, GPU_NUM, IS_ON_NSML
-
+from keras.layers import merge
+from keras.layers.core import *
+from keras.layers.recurrent import LSTM
+from keras.models import *
 
 # DONOTCHANGE: They are reserved for nsml
 # This is for nsml leaderboard
@@ -71,6 +74,9 @@ class Nsml_Callback(Callback):
         nsml.save(epoch)
 
 from keras import backend as K
+from keras.engine.topology import Layer
+from keras import initializers, regularizers, constraints
+from keras.layers import LSTM, activations, Wrapper, Recurrent
 from keras.engine.topology import Layer
 from keras import initializers, regularizers, constraints
 
@@ -144,6 +150,7 @@ class Attention(Layer):
     def compute_output_shape(self, input_shape):
         return input_shape[0],  self.features_dim
     
+
 if __name__ == '__main__':
     args = argparse.ArgumentParser()
     # DONOTCHANGE: They are reserved for nsml
@@ -153,18 +160,18 @@ if __name__ == '__main__':
 
     # User options
     args.add_argument('--output', type=int, default=1)
-    args.add_argument('--epochs', type=int, default=100)
+    args.add_argument('--epochs', type=int, default=35)
     args.add_argument('--strmaxlen', type=int, default=200)
     
 #   # args.add_argument('--maxlen', type=int, default=200)
-    args.add_argument('--cell_size_l1', type=int, default=40)
-    args.add_argument('--cell_size_l2', type=int, default=40)
+    args.add_argument('--cell_size_l1', type=int, default=64)
+    args.add_argument('--cell_size_l2', type=int, default=64)
     args.add_argument('--filter_size', type=int, default=32)
     args.add_argument('--kernel_size', type=int, default=2)
     args.add_argument('--embed_size', type=int, default=256)
     args.add_argument('--prob_dropout', type=float, default=0.4)
     args.add_argument('--max_features', type=int, default=251)
-    args.add_argument('--batch_size', type=int, default=256)
+    args.add_argument('--batch_size', type=int, default=100)
     
     config = args.parse_args()
 
@@ -175,19 +182,19 @@ if __name__ == '__main__':
         inp = Input(shape=(config.strmaxlen, ), name='input')
         
         emb1 = Embedding(config.max_features, config.embed_size, trainable = True)(inp)
-        emb1 = SpatialDropout1D(config.prob_dropout)(emb1)
+#         emb1 = SpatialDropout1D(config.prob_dropout)(emb1)
         
         #### 
         l1_G = Bidirectional(CuDNNGRU(config.cell_size_l1, return_sequences=True))(emb1)
         
         l2_LL = Bidirectional(CuDNNLSTM(config.cell_size_l2, return_sequences=True))(l1_G)
-        l2_LG = Bidirectional(CuDNNGRU(config.cell_size_l2, return_sequences=True))(l1_G)
+#         l2_LG = Bidirectional(CuDNNGRU(config.cell_size_l2, return_sequences=True))(l1_G)
 
 #         avg_pool_L = GlobalAveragePooling1D()(l1_L)
 #         max_pool_L = GlobalMaxPooling1D()(l1_L)
-
+        
         attention_LL = Attention(config.strmaxlen)(l2_LL)
-        attention_LG = Attention(config.strmaxlen)(l2_LG)    
+#         attention_LG = Attention(config.strmaxlen)(l2_LG)
 #         avg_pool_LL = GlobalAveragePooling1D()(l2_LL)
 #         max_pool_LL = GlobalMaxPooling1D()(l2_LL)
 #         avg_pool_LG = GlobalAveragePooling1D()(l2_LG)
@@ -203,19 +210,19 @@ if __name__ == '__main__':
 #         conc_GLC = concatenate([avg_pool_G, max_pool_G, avg_pool_GL, max_pool_GL, avg_pool_GLC, max_pool_GLC])
 #         conc_GGC = concatenate([avg_pool_G, max_pool_G, avg_pool_GG, max_pool_GG, avg_pool_GGC, max_pool_GGC])        
 
-        out_LL = Dropout(config.prob_dropout)(attention_LL)
-        out_LL = Dense(1)(out_LL)
-        out_LG = Dropout(config.prob_dropout)(attention_LG)
-        out_LG = Dense(1)(out_LG)
+#         out_LL = Dropout(config.prob_dropout)(attention_LL)
+        out_LL = Dense(1)(attention_LL)
+#         out_LG = Dropout(config.prob_dropout)(attention_LG)
+#         out_LG = Dense(1)(attention_LG)
 
         
         ####
         
-        out_avg = average([out_LL, out_LG])
+#         out_avg = average([out_LL, out_LG])
 
         
 # #         ==================================================================================================
-        model_avg = Model(inputs=inp, outputs=[out_LL, out_LG, out_avg])
+        model_avg = Model(inputs=inp, outputs=out_LL)
         
 #         inp_pre = Input(shape=(config.strmaxlen, ), name='input_pre')
 #         inp_post = Input(shape=(config.strmaxlen, ), name='input_post')
@@ -228,7 +235,9 @@ if __name__ == '__main__':
         
 #         reg_model = Model(inputs=[inp_pre, inp_post], outputs=ens_out)
         
-        model_avg.compile(loss='mean_squared_error', optimizer='adam', loss_weights=[1., 1., 4.] ,metrics=['mean_squared_error', 'accuracy'])
+        model_avg.compile(loss='mean_squared_error', optimizer='adam',
+#                           loss_weights=[1., 1., 2.],
+                          metrics=['mean_squared_error', 'accuracy'])
         
         return model_avg
     
@@ -261,9 +270,9 @@ if __name__ == '__main__':
 #         x_val = np.array(dataset_val.reviews)
 #         y_val = np.array(dataset_val.labels)
         print("model training...")
-        hist = model.fit(x_pre, [y,y,y], 
+        hist = model.fit(x_pre, y, 
                          validation_split = 0.12,
-                         batch_size=config.batch_size, callbacks=[nsml_callback, ], epochs=config.epochs, verbose=2)
+                         batch_size=config.batch_size, callbacks=[nsml_callback, checkpoint], epochs=config.epochs, verbose=2)
 
 
     # 로컬 테스트 모드일때 사용합니다
