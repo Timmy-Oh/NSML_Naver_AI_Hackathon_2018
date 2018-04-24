@@ -180,49 +180,51 @@ if __name__ == '__main__':
         
     def get_model(config):
         inp = Input(shape=(config.strmaxlen, ), name='input')
-        
-        emb1 = Embedding(config.max_features, config.embed_size, trainable = True)(inp)
+#         inp = Input(shape=(config.max_features, ), name='input')
+
+        emb1 = Embedding(config.max_features, config.max_features,embeddings_initializer='identity', trainable = False)(inp)
+#         emb1 = Embedding(config.max_features, config.embed_size, trainable = True)(inp)
 #         emb1 = SpatialDropout1D(config.prob_dropout)(emb1)
         
         #### 
-        l1_G = Bidirectional(CuDNNGRU(config.cell_size_l1, return_sequences=True))(emb1)
-        
-        l2_LL = Bidirectional(CuDNNLSTM(config.cell_size_l2, return_sequences=True))(l1_G)
-#         l2_LG = Bidirectional(CuDNNGRU(config.cell_size_l2, return_sequences=True))(l1_G)
+        l1_L = Bidirectional(CuDNNLSTM(config.cell_size_l1, return_sequences=True))(emb1)
+        l2_LL = Bidirectional(CuDNNLSTM(config.cell_size_l2, return_sequences=True))(l1_L)
+        l2_LG = Bidirectional(CuDNNGRU(config.cell_size_l2, return_sequences=True))(l1_L)
+#         l3_LLC = Conv1D(config.filter_size, kernel_size = config.kernel_size, strides=1, padding = "valid", kernel_initializer = "he_uniform")(l2_LL)
 
 #         avg_pool_L = GlobalAveragePooling1D()(l1_L)
 #         max_pool_L = GlobalMaxPooling1D()(l1_L)
         
-        attention_LL = Attention(config.strmaxlen)(l2_LL)
+#         attention_LL = Attention(config.strmaxlen)(l2_LL)
 #         attention_LG = Attention(config.strmaxlen)(l2_LG)
-#         avg_pool_LL = GlobalAveragePooling1D()(l2_LL)
-#         max_pool_LL = GlobalMaxPooling1D()(l2_LL)
-#         avg_pool_LG = GlobalAveragePooling1D()(l2_LG)
-#         max_pool_LG = GlobalMaxPooling1D()(l2_LG)
+        avg_pool_LL = GlobalAveragePooling1D()(l2_LL)
+        max_pool_LL = GlobalMaxPooling1D()(l2_LL)
+        avg_pool_LG = GlobalAveragePooling1D()(l2_LG)
+        max_pool_LG = GlobalMaxPooling1D()(l2_LG)
 
 #         avg_pool_LLC = GlobalAveragePooling1D()(l3_LLC)
 #         max_pool_LLC = GlobalMaxPooling1D()(l3_LLC)
 #         avg_pool_LGC = GlobalAveragePooling1D()(l3_LGC)
 #         max_pool_LGC = GlobalMaxPooling1D()(l3_LGC)
         
-#         conc_LL = concatenate([avg_pool_LL, max_pool_LL])
-#         conc_LG = concatenate([avg_pool_LG, max_pool_LG])
+        conc_LL = concatenate([avg_pool_LL, max_pool_LL])
+        conc_LG = concatenate([avg_pool_LG, max_pool_LG])
 #         conc_GLC = concatenate([avg_pool_G, max_pool_G, avg_pool_GL, max_pool_GL, avg_pool_GLC, max_pool_GLC])
 #         conc_GGC = concatenate([avg_pool_G, max_pool_G, avg_pool_GG, max_pool_GG, avg_pool_GGC, max_pool_GGC])        
 
 #         out_LL = Dropout(config.prob_dropout)(attention_LL)
-        out_LL = Dense(1)(attention_LL)
+        out_LL = Dense(1)(conc_LL)
 #         out_LG = Dropout(config.prob_dropout)(attention_LG)
-#         out_LG = Dense(1)(attention_LG)
+        out_LG = Dense(1)(conc_LL)
 
         
         ####
         
-#         out_avg = average([out_LL, out_LG])
+        out_avg = average([out_LL, out_LG])
 
         
 # #         ==================================================================================================
-        model_avg = Model(inputs=inp, outputs=out_LL)
+        model_avg = Model(inputs=inp, outputs=[out_LL, out_LG, out_avg])
         
 #         inp_pre = Input(shape=(config.strmaxlen, ), name='input_pre')
 #         inp_post = Input(shape=(config.strmaxlen, ), name='input_post')
@@ -236,7 +238,7 @@ if __name__ == '__main__':
 #         reg_model = Model(inputs=[inp_pre, inp_post], outputs=ens_out)
         
         model_avg.compile(loss='mean_squared_error', optimizer='adam',
-#                           loss_weights=[1., 1., 2.],
+                          loss_weights=[1., 1., 2.],
                           metrics=['mean_squared_error', 'accuracy'])
         
         return model_avg
