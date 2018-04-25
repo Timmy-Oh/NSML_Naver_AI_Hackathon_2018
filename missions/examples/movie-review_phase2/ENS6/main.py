@@ -27,7 +27,7 @@ from keras.callbacks import Callback
 from keras.callbacks import Callback, LearningRateScheduler, ModelCheckpoint
 
 import nsml
-from dataset import MovieReviewDataset, preprocess_pre, preprocess_post
+from dataset import MovieReviewDataset, preprocess_pre
 from nsml import DATASET_PATH, HAS_DATASET, GPU_NUM, IS_ON_NSML
 from keras.layers import merge
 from keras.layers.core import *
@@ -164,12 +164,13 @@ if __name__ == '__main__':
     args.add_argument('--strmaxlen', type=int, default=200)
     
 #   # args.add_argument('--maxlen', type=int, default=200)
-    args.add_argument('--cell_size_l1', type=int, default=64)
-    args.add_argument('--cell_size_l2', type=int, default=64)
+    args.add_argument('--cell_size_l1', type=int, default=50)
+    args.add_argument('--cell_size_l2', type=int, default=40)
     args.add_argument('--filter_size', type=int, default=32)
-    args.add_argument('--kernel_size', type=int, default=2)
+    args.add_argument('--kernel_size', type=int, default=3)
     args.add_argument('--embed_size', type=int, default=256)
     args.add_argument('--prob_dropout', type=float, default=0.4)
+    args.add_argument('--prob_dropout2', type=float, default=0.2)
     args.add_argument('--max_features', type=int, default=251)
     args.add_argument('--batch_size', type=int, default=100)
     
@@ -182,42 +183,46 @@ if __name__ == '__main__':
         inp = Input(shape=(config.strmaxlen, ), name='input')
 #         inp = Input(shape=(config.max_features, ), name='input')
 
-        emb1 = Embedding(config.max_features, config.max_features,embeddings_initializer='identity', trainable = False)(inp)
+        emb1 = Embedding(config.max_features, config.max_features,embeddings_initializer='identity', trainable = True)(inp)
 #         emb1 = Embedding(config.max_features, config.embed_size, trainable = True)(inp)
-#         emb1 = SpatialDropout1D(config.prob_dropout)(emb1)
+        emb1 = SpatialDropout1D(config.prob_dropout)(emb1)
         
         #### 
         l1_L = Bidirectional(CuDNNLSTM(config.cell_size_l1, return_sequences=True))(emb1)
+        
         l2_LL = Bidirectional(CuDNNLSTM(config.cell_size_l2, return_sequences=True))(l1_L)
         l2_LG = Bidirectional(CuDNNGRU(config.cell_size_l2, return_sequences=True))(l1_L)
-#         l3_LLC = Conv1D(config.filter_size, kernel_size = config.kernel_size, strides=1, padding = "valid", kernel_initializer = "he_uniform")(l2_LL)
-
-#         avg_pool_L = GlobalAveragePooling1D()(l1_L)
-#         max_pool_L = GlobalMaxPooling1D()(l1_L)
         
-#         attention_LL = Attention(config.strmaxlen)(l2_LL)
-#         attention_LG = Attention(config.strmaxlen)(l2_LG)
+        l3_LLC = Conv1D(config.filter_size, kernel_size = config.kernel_size, strides=2, padding = "valid", kernel_initializer = "he_uniform")(l2_LL)
+        l3_LGC = Conv1D(config.filter_size, kernel_size = config.kernel_size, strides=2, padding = "valid", kernel_initializer = "he_uniform")(l2_LG)
+
+        avg_pool_L = GlobalAveragePooling1D()(l1_L)
+        max_pool_L = GlobalMaxPooling1D()(l1_L)
+        
+        
         avg_pool_LL = GlobalAveragePooling1D()(l2_LL)
         max_pool_LL = GlobalMaxPooling1D()(l2_LL)
         avg_pool_LG = GlobalAveragePooling1D()(l2_LG)
         max_pool_LG = GlobalMaxPooling1D()(l2_LG)
-
-#         avg_pool_LLC = GlobalAveragePooling1D()(l3_LLC)
-#         max_pool_LLC = GlobalMaxPooling1D()(l3_LLC)
-#         avg_pool_LGC = GlobalAveragePooling1D()(l3_LGC)
-#         max_pool_LGC = GlobalMaxPooling1D()(l3_LGC)
         
-        conc_LL = concatenate([avg_pool_LL, max_pool_LL])
-        conc_LG = concatenate([avg_pool_LG, max_pool_LG])
-#         conc_GLC = concatenate([avg_pool_G, max_pool_G, avg_pool_GL, max_pool_GL, avg_pool_GLC, max_pool_GLC])
-#         conc_GGC = concatenate([avg_pool_G, max_pool_G, avg_pool_GG, max_pool_GG, avg_pool_GGC, max_pool_GGC])        
+        attention_LLA = Attention(config.strmaxlen)(l2_LL)
+        attention_LGA = Attention(config.strmaxlen)(l2_LG)
 
-#         out_LL = Dropout(config.prob_dropout)(attention_LL)
-        out_LL = Dense(1)(conc_LL)
-#         out_LG = Dropout(config.prob_dropout)(attention_LG)
-        out_LG = Dense(1)(conc_LL)
-
+        avg_pool_LLC = GlobalAveragePooling1D()(l3_LLC)
+        max_pool_LLC = GlobalMaxPooling1D()(l3_LLC)
+        avg_pool_LGC = GlobalAveragePooling1D()(l3_LGC)
+        max_pool_LGC = GlobalMaxPooling1D()(l3_LGC)
         
+        attention_LLCA = Attention(int(config.strmaxlen/2-1))(l3_LLC)
+        attention_LGCA = Attention(int(config.strmaxlen/2-1))(l3_LGC)
+        
+        conc_LLC = concatenate([avg_pool_L, max_pool_L, avg_pool_LL, max_pool_LL, avg_pool_LLC, max_pool_LLC, attention_LLA, attention_LLCA])
+        conc_LGC = concatenate([avg_pool_L, max_pool_L, avg_pool_LG, max_pool_LG, avg_pool_LGC, max_pool_LGC, attention_LGA, attention_LGCA])        
+
+        out_LL = Dropout(config.prob_dropout2)(conc_LLC)
+        out_LG = Dropout(config.prob_dropout2)(conc_LGC)
+        out_LL = Dense(1)(out_LL)
+        out_LG = Dense(1)(out_LG)
         ####
         
         out_avg = average([out_LL, out_LG])
@@ -238,7 +243,7 @@ if __name__ == '__main__':
 #         reg_model = Model(inputs=[inp_pre, inp_post], outputs=ens_out)
         
         model_avg.compile(loss='mean_squared_error', optimizer='adam',
-                          loss_weights=[1., 1., 2.],
+                          loss_weights=[1., 1., 4.],
                           metrics=['mean_squared_error', 'accuracy'])
         
         return model_avg
@@ -262,7 +267,7 @@ if __name__ == '__main__':
         dataset = MovieReviewDataset(DATASET_PATH, config.strmaxlen)
         
         x_pre = np.array(dataset.reviews_pre)
-        x_post = np.array(dataset.reviews_post)
+#         x_post = np.array(dataset.reviews_post)
         y = np.array(dataset.labels)
         
         # epoch마다 학습을 수행합니다.
@@ -272,7 +277,7 @@ if __name__ == '__main__':
 #         x_val = np.array(dataset_val.reviews)
 #         y_val = np.array(dataset_val.labels)
         print("model training...")
-        hist = model.fit(x_pre, y, 
+        hist = model.fit(x_pre, [y,y,y], 
                          validation_split = 0.12,
                          batch_size=config.batch_size, callbacks=[nsml_callback, checkpoint], epochs=config.epochs, verbose=2)
 
