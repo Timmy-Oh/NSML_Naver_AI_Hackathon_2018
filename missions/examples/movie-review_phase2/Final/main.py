@@ -225,9 +225,9 @@ if __name__ == '__main__':
         out_LG = Dense(1)(out_LG)
         ####
         
-        emb2 = Embedding(config.max_features, config.max_features,embeddings_initializer='identity', trainable = True)(inp)
+#         emb2 = Embedding(config.max_features, config.max_features,embeddings_initializer='identity', trainable = True)(inp)
 #         emb1 = Embedding(config.max_features, config.embed_size, trainable = True)(inp)
-        emb2 = SpatialDropout1D(config.prob_dropout)(emb2)
+        emb2 = SpatialDropout1D(config.prob_dropout)(emb1)
         
         #### 
         l1_G = Bidirectional(CuDNNGRU(config.cell_size_l1, return_sequences=True))(emb2)
@@ -266,11 +266,105 @@ if __name__ == '__main__':
         out_GL = Dense(1)(out_GL)
         out_GG = Dense(1)(out_GG)
         
-        out_avg = average([out_LL, out_LG, out_GL, out_GG])
+                #wrote out all the blocks instead of looping for simplicity
+        filter_nr = 64
+        filter_size = 3
+        max_pool_size = 3
+        max_pool_strides = 2
+        dense_nr = 64
+        spatial_dropout = 0.3
+        dense_dropout = 0.4
+        conv_kern_reg = regularizers.l2(0.000005)
+        conv_bias_reg = regularizers.l2(0.000005)
+        
+        emb3 = SpatialDropout1D(config.prob_dropout)(emb1)
+
+        block1 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(emb3)
+        block1 = BatchNormalization()(block1)
+        block1 = PReLU()(block1)
+        block1 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block1)
+        block1 = BatchNormalization()(block1)
+        block1 = PReLU()(block1)
+
+        #we pass embedded comment through conv1d with filter size 1 because it needs to have the same shape as block output
+        #if you choose filter_nr = embed_size (300 in this case) you don't have to do this part and can add emb_comment directly to block1_output
+        resize_emb = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(emb3)
+        resize_emb = PReLU()(resize_emb)
+
+        block1_output = add([block1, resize_emb])
+        block1_output = MaxPooling1D(pool_size=max_pool_size, strides=max_pool_strides)(block1_output)
+
+        block2 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block1_output)
+        block2 = BatchNormalization()(block2)
+        block2 = PReLU()(block2)
+        block2 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block2)
+        block2 = BatchNormalization()(block2)
+        block2 = PReLU()(block2)
+
+        block2_output = add([block2, block1_output])
+        block2_output = MaxPooling1D(pool_size=max_pool_size, strides=max_pool_strides)(block2_output)
+
+        block3 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block2_output)
+        block3 = BatchNormalization()(block3)
+        block3 = PReLU()(block3)
+        block3 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block3)
+        block3 = BatchNormalization()(block3)
+        block3 = PReLU()(block3)
+
+        block3_output = add([block3, block2_output])
+        block3_output = MaxPooling1D(pool_size=max_pool_size, strides=max_pool_strides)(block3_output)
+
+        block4 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block3_output)
+        block4 = BatchNormalization()(block4)
+        block4 = PReLU()(block4)
+        block4 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block4)
+        block4 = BatchNormalization()(block4)
+        block4 = PReLU()(block4)
+
+        block4_output = add([block4, block3_output])
+        block4_output = MaxPooling1D(pool_size=max_pool_size, strides=max_pool_strides)(block4_output)
+
+        block5 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block4_output)
+        block5 = BatchNormalization()(block5)
+        block5 = PReLU()(block5)
+        block5 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block5)
+        block5 = BatchNormalization()(block5)
+        block5 = PReLU()(block5)
+
+        block5_output = add([block5, block4_output])
+        block5_output = MaxPooling1D(pool_size=max_pool_size, strides=max_pool_strides)(block5_output)
+
+        block6 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block5_output)
+        block6 = BatchNormalization()(block6)
+        block6 = PReLU()(block6)
+        block6 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block6)
+        block6 = BatchNormalization()(block6)
+        block6 = PReLU()(block6)
+
+        block6_output = add([block6, block5_output])
+        block6_output = MaxPooling1D(pool_size=max_pool_size, strides=max_pool_strides)(block6_output)
+
+        block7 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block6_output)
+        block7 = BatchNormalization()(block7)
+        block7 = PReLU()(block7)
+        block7 = Conv1D(config.filter_size, kernel_size=config.kernel_size, padding='same', activation='linear')(block7)
+        block7 = BatchNormalization()(block7)
+        block7 = PReLU()(block7)
+
+        block7_output = add([block7, block6_output])
+        output = GlobalMaxPooling1D()(block7_output)
+
+        output = Dense(dense_nr, activation='linear')(output)
+        output = BatchNormalization()(output)
+        output = PReLU()(output)
+        output = Dropout(dense_dropout)(output)
+        dpcnn_out = Dense(1)(output)
+        
+        out_avg = average([out_LL, out_LG, out_GL, out_GG, dpcnn_out])
 
         
 # #         ==================================================================================================
-        model_avg = Model(inputs=inp, outputs=[out_LL, out_LG, out_GL, out_GG, out_avg])
+        model_avg = Model(inputs=inp, outputs=[out_LL, out_LG, out_GL, out_GG, dpcnn_out, out_avg])
         
 #         inp_pre = Input(shape=(config.strmaxlen, ), name='input_pre')
 #         inp_post = Input(shape=(config.strmaxlen, ), name='input_post')
@@ -284,7 +378,7 @@ if __name__ == '__main__':
 #         reg_model = Model(inputs=[inp_pre, inp_post], outputs=ens_out)
         
         model_avg.compile(loss='mean_squared_error', optimizer='adam',
-                          loss_weights=[1., 1., 1., 1., 4.],
+                          loss_weights=[1., 1., 1., 1., 1., 0.1],
                           metrics=['mean_squared_error', 'accuracy'])
         
         return model_avg
@@ -311,6 +405,9 @@ if __name__ == '__main__':
 #         x_post = np.array(dataset.reviews_post)
         y = np.array(dataset.labels)
         
+        from sklearn.utils import shuffle
+        x_pre, y = shuffle(x_pre, y, random_state=1991)
+        
         # epoch마다 학습을 수행합니다.
         nsml_callback = Nsml_Callback()
 #         checkpoint = ModelCheckpoint('./best.hdf5', monitor='val_loss', save_best_only=True, mode='min', period=1)
@@ -318,8 +415,8 @@ if __name__ == '__main__':
 #         x_val = np.array(dataset_val.reviews)
 #         y_val = np.array(dataset_val.labels)
         print("model training...")
-        hist = model.fit(x_pre, [y,y,y,y,y], 
-#                          validation_split = 0.12,
+        hist = model.fit(x_pre, [y,y,y,y,y,y], 
+                         validation_split = 0.12,
                          batch_size=config.batch_size, callbacks=[nsml_callback], epochs=config.epochs, verbose=2)
 
 
