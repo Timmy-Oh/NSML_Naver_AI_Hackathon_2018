@@ -1,9 +1,8 @@
 # 네이버 AI 해커톤 2018 - "한계를 넘어 상상에 도전하자!"
-
-### Team : 슈퍼갤럭시 
-<b>Member : 김민태, 오영택 </b>
+### Team 슈퍼갤럭시 - Member :- 김민태, 오영택 </b>
 
 ---
+
 ## 미션
 * [네이버 지식iN 질문 유사도 예측](missions/kin.md)
 * [네이버 영화 평점 예측](missions/movie-review.md)
@@ -23,6 +22,8 @@
 | final	| kin		| accuracy | 0.8065	| 5th	|
 | |
 
+## 모델
+### Coming SSOONN
 
 
 ## 일정
@@ -49,8 +50,7 @@
     </td>
     <td style="text-align:center">2주</td>
     <td>
-      온라인<br>
-      <a href="https://hack.nsml.navercorp.com">https://hack.nsml.navercorp.com</a>
+      온라인
     </td>
   </tr>
   <tr>
