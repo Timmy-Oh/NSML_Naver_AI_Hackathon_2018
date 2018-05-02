@@ -2,65 +2,13 @@
 
 "한계를 넘어 상상에 도전하자!"
 
-인간이 오감을 활용하는 것처럼 AI도 인간의 오감을 모두 활용하는 방향으로 나아갈 것입니다.<br>
-또한, 인터넷과 모바일이 세상을 크게 변화시킨 것처럼 AI 역시 세상을 크게 변화시킬 것이며 그 영향력은 더욱 커질 것입니다.<br>
-네이버는 AI와 함께 더 편리하고 행복한 미래를 만들기 위해 **네이버 AI 해커톤 2018**을 준비했습니다.<br>
+## Team : 슈퍼갤럭시
+### Member : 김민태, 오영택 
 
-특히, 이번 네이버 AI 해커톤 2018은 네이버의 클라우드 머신러닝 플랫폼인 <strong>[NSML](https://hack.nsml.navercorp.com/intro)</strong>과 함께 합니다.
-
-<strong>NSML(Naver Smart Machine Learning)</strong>은 모델을 연구하고 개발하는 데 필요한 복잡한 과정을 대신 처리해주어<br>
-연구 개발자들이 "모델 개발"에만 전념할 수 있고, 다양한 시도를 쉽게 할 수 있는 창의적인 환경을 제공할 것입니다.
-
-AI를 통해 복잡한 문제를 해결하고 싶나요?<br>
-AI 전문가들과 함께 문제 해결 방법을 고민하고 경험을 공유하고 싶다고요?
-
-지금 바로 <strong>네이버 AI 해커톤 2018</strong>에 참여해서<br>
-서로의 경험을 공유하고, 다양하고 창의적인 방법으로 문제를 해결해 보세요!
-
-[![안내 및 문제 소개](res/cSGPHtzPFQ.png)](https://youtu.be/cSGPHtzPFQw)
-
-## 대회 종료
-<table>
-  <tr>
-    <th style="text-align:center;width:8%">순위</th>
-    <th style="text-align:center;width:46%">지식인 유사도</th>
-    <th style="text-align:center;width:46%">영화 평점</th>
-  </tr>
-  <tr>
-    <td style="text-align:center">
-      1위
-    </td>
-    <td style="text-align:center">
-      Team Sadang 팀
-    </td>
-    <td style="text-align:center">
-      HCC 팀
-    </td>
-  </tr>
-  <tr>
-    <td style="text-align:center">
-      2위
-    </td>
-    <td style="text-align:center">
-      error 모르게따 팀
-    </td>
-    <td style="text-align:center">
-      콜라마시며코딩 팀
-    </td>
-  </tr>
-  <tr>
-    <td style="text-align:center">
-      3위
-    </td>
-    <td style="text-align:center">
-      푸핑톤 팀
-    </td>
-    <td style="text-align:center">
-      JJu 팀
-    </td>
-  </tr>
-</table>
-
+## 대회 결과
+||||
+||||
+||||
 * [네이버 지식iN 질문 유사도 예측 문제 최종결과](res/result_kin_final.png)
 * [네이버 영화 평점 예측 최종결과](res/result_movie_final.png)
 
