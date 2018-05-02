@@ -1,41 +1,3 @@
-![banner](./res/NSMLHack_web_1000x260_G.jpg)
-
-# 공지사항
-### 예선 2라운드 안내
-* 각 미션별 상위 50위 팀을 대상으로 예선 2라운드를 시작합니다.
-  - [네이버 지식iN 질문 유사도 미션 랭킹](res/rank1.png), [네이버 영화 평점 예측 미션 랭킹](res/rank2.png)
-* 예선 2라운드 일정: 2018년 4월 10일(화) 오전 11시 ~ 2018년 4월 16일(월) 오전 11시
-* 리더보드는 리셋되며 데이터 셋 볼륨이 더 커집니다.
-
-### 예선 1라운드 종료 안내
-* 4월 9일(월) 오전 11시 예선 1라운드 종료합니다.
-* 11시 이후 NSML 접속이 안됩니다.
-* 예선 2라운드 참여자는 4월 9일(월) 오후 중에 개별 안내드릴 예정입니다.
-### NSML FAQ 안내
-* [FAQ_NSML.md](FAQ_NSML.md)
-* NSML에 대해 자주 문의 하는 내용을 공유합니다. FAQ 내용은 계속 업데이트 할 예정입니다. 문의 하시기 전에 한번씩 살펴 봐 주세요.
-
-### 서버 점검 안내
-* 해커톤을 진행하며 발견한 NSML 문제를 수정하기 위해 서버를 점검 합니다.
-  - 기간 : 2018년 4월 4일(수) 오후 3:00 ~ 오후 4:00
-  - 점검 시간 동안 NSML 접속이 불가합니다. 양해 부탁드립니다.
-  - 점검이 끝난 후 120 NSML 크레딧을 추가로 지급합니다.
-
-### NSML 크래딧 제한 안내
- * 누적 크레딧을 2000크레딧으로 제한합니다.
-
-### 미션 공개
-[미션](#%EB%AF%B8%EC%85%98)을 공개합니다.<br>
-[NSML](https://hack.nsml.navercorp.com/download)을 다시 다운로드하고 설치해 주세요!
-
-예선 라운드 일정이 변경됐습니다.
-* 예선 1라운드
-  - 기존 2018년 4월 2일(월) ~ 2018년 4월 8일(일)
-  - 변경 2018년 4월 2일(월) ~ 2018년 4월 9일(월) 오전 11시
-* 예선 2라운드
-  - 기존 2018년 4월 9일(월) ~ 2018년 4월 15일(일)
-  - 변경 2018년 4월 10일(화) 오전 11시 ~ 2018년 4월 16일(월) 오전 11시
-
 # 네이버 AI 해커톤 2018
 
 "한계를 넘어 상상에 도전하자!"
@@ -56,6 +18,107 @@ AI 전문가들과 함께 문제 해결 방법을 고민하고 경험을 공유�
 서로의 경험을 공유하고, 다양하고 창의적인 방법으로 문제를 해결해 보세요!
 
 [![안내 및 문제 소개](res/cSGPHtzPFQ.png)](https://youtu.be/cSGPHtzPFQw)
+
+## 대회 종료
+<table>
+  <tr>
+    <th style="text-align:center;width:8%">순위</th>
+    <th style="text-align:center;width:46%">지식인 유사도</th>
+    <th style="text-align:center;width:46%">영화 평점</th>
+  </tr>
+  <tr>
+    <td style="text-align:center">
+      1위
+    </td>
+    <td style="text-align:center">
+      Team Sadang 팀
+    </td>
+    <td style="text-align:center">
+      HCC 팀
+    </td>
+  </tr>
+  <tr>
+    <td style="text-align:center">
+      2위
+    </td>
+    <td style="text-align:center">
+      error 모르게따 팀
+    </td>
+    <td style="text-align:center">
+      콜라마시며코딩 팀
+    </td>
+  </tr>
+  <tr>
+    <td style="text-align:center">
+      3위
+    </td>
+    <td style="text-align:center">
+      푸핑톤 팀
+    </td>
+    <td style="text-align:center">
+      JJu 팀
+    </td>
+  </tr>
+</table>
+
+* [네이버 지식iN 질문 유사도 예측 문제 최종결과](res/result_kin_final.png)
+* [네이버 영화 평점 예측 최종결과](res/result_movie_final.png)
+
+## 모델 공유
+
+<table>
+  <tr>
+    <th style="text-align:left;width:20%">팀명</th>
+    <th style="text-align:left;width:40%">미션</th>
+    <th style="text-align:left;width:40%">링크</th>
+  </tr>
+  <tr>
+    <td>
+      HongTeam
+    </td>
+    <td>
+      네이버 영화 평점 예측
+    </td>
+    <td>
+      <a href="https://github.com/grohong/ML/blob/master/Mid%20Report.pdf">바로가기</a>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      tantara
+    </td>
+    <td>
+      네이버 영화 평점 예측
+    </td>
+    <td>
+      <a href="https://github.com/tantara/naver-ai-hackathon-2018">바로가기</a>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      ToMuchInfo
+    </td>
+    <td>
+      네이버 영화 평점 예측
+    </td>
+    <td>
+      <a href="https://github.com/dreamgonfly/ToMuchInfo">바로가기</a>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Hermits
+    </td>
+    <td>
+      네이버 영화 평점 예측
+    </td>
+    <td>
+      <a href="https://github.com/GzuPark/naver-ai-hackathon-2018/tree/master/libs">바로가기</a>
+    </td>
+  </tr>
+</table>
+
+> ※ 모델을 공유하실 팀은 PR 부탁드립니다.
 
 ## 멘토
 여러분들과 함께 문제 해결 방법을 고민하고 조언 해주실 슈퍼 멘토를 소개합니다.
@@ -162,7 +225,7 @@ AI로 문제를 해결하는 데 관심 있는 분이라면 누구나 참가 신
 
 ### 결선
 * 2018년 4월 26일(목) ~ 4월 27일(금) 1박 2일 동안 진행
-* 결선 참가자에게는 600 + α NSML 크레딧을 지급합니다.
+* 결선 참가자에게는 1440 + α NSML 크레딧을 지급합니다.
 * NSML 리더보드 순위로 최종 순위를 결정합니다.
 
 > ※ 1 NSML 크레딧으로 NSML GPU를 1분 사용할 수 있습니다.<br>
@@ -179,11 +242,12 @@ AI로 문제를 해결하는 데 관심 있는 분이라면 누구나 참가 신
 * 우수 참가자 중 네이버 인턴 지원 시 서류 전형 면제
 
 ## FAQ
-자주 문의하는 내용을 확인해 보세요! [FAQ.md](FAQ.md)
+* 자주 문의하는 내용을 확인해 보세요! [FAQ.md](FAQ.md)
+* NSML에 대해 자주 문의 하는 내용을 공유합니다. [FAQ_NSML.md](FAQ_NSML.md)
 
 ## 문의
 해커톤 관련 문의는 아래 이메일을 통해 할 수 있습니다.<br>
-dl_ai_hackathon_2018@navercorp.com
+~~dl_ai_hackathon_2018@navercorp.com~~
 
 ## License
 ```

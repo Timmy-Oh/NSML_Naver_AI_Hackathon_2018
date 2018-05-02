@@ -41,7 +41,6 @@ def bind_model(sess, config):
         os.makedirs(dir_name, exist_ok=True)
         saver = tf.train.Saver()
         saver.save(sess, os.path.join(dir_name, 'model'))
-        print("{} is saved on nsml".format(os.path.join(dir_name, 'model')))
 
     # 저장한 모델을 불러올 수 있는 함수입니다.
     def load(dir_name, *args):
@@ -75,7 +74,7 @@ def bind_model(sess, config):
     # nsml에서 지정한 함수에 접근할 수 있도록 하는 함수입니다.
     nsml.bind(save=save, load=load, infer=infer)
 
- 
+
 def _batch_loader(iterable, n=1):
     """
     데이터를 배치 사이즈만큼 잘라서 보내주는 함수입니다. PyTorch의 DataLoader와 같은 역할을 합니다

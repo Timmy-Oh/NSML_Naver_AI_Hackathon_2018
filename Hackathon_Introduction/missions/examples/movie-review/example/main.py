@@ -24,7 +24,11 @@ import argparse
 import os
 
 import numpy as np
-import keras
+import torch
+
+from torch.autograd import Variable
+from torch import nn, optim
+from torch.utils.data import DataLoader
 
 import nsml
 from dataset import MovieReviewDataset, preprocess
