@@ -3,11 +3,11 @@
 
 ---
 
-## 미션
+## Missions
 * [네이버 지식iN 질문 유사도 예측](missions/kin.md)
 * [네이버 영화 평점 예측](missions/movie-review.md)
 
-## 대회 결과
+## Result 
 
 | Stage	| Mission | Metric | Score | Rank	|
 |:------------- |:---------- | ------ | ------- | ------ |
@@ -22,11 +22,11 @@
 | final	| kin		| accuracy | 0.8065	| 5th	|
 | |
 
-## 모델
+## Model Detail
 ### Coming SSOONN
 
 
-## 일정
+## Timeline
 <table class="tbl_schedule">
   <tr>
     <th style="text-align:left;width:50%">일정</th>
