@@ -34,12 +34,12 @@ import pickle as pkl
 def bind_model(model, config, tknzr):
     def save(filename, *args):
         model.save_weights(filename)
-        with open(os.path.join(filename, 'tknzr.pkl'), 'wb') as f:
-            pkl.dump(tknzr, f)
+#        with open(os.path.join(filename, 'tknzr.pkl'), 'wb') as f:
+#            pkl.dump(tknzr, f)
     def load(filename, *args):
         model.load_weights(filename)
-        with open(os.path.join(filename, 'tknzr.pkl'), 'rb') as f:
-            tknzr = pkl.load(f)
+#        with open(os.path.join(filename, 'tknzr.pkl'), 'rb') as f:
+#            tknzr = pkl.load(f)
 
     def infer(raw_data, **kwargs):
         

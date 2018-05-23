@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-
 import numpy as np
-
 from kor_char_parser import decompose_str_as_one_hot
-
 
 class KinQueryDataset:
     def __init__(self, dataset_path: str, max_length: int):
